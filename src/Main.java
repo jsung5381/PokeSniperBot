@@ -1,3 +1,4 @@
+import POGOProtos.Enums.PokemonIdOuterClass;
 import POGOProtos.Networking.Responses.CatchPokemonResponseOuterClass;
 import com.pokegoapi.api.PokemonGo;
 import com.pokegoapi.api.inventory.PokeBank;
@@ -9,8 +10,6 @@ import com.pokegoapi.api.pokemon.Pokemon;
 import com.pokegoapi.api.settings.CatchOptions;
 import com.pokegoapi.api.settings.PokeballSelector;
 import com.pokegoapi.auth.GoogleAutoCredentialProvider;
-import com.pokegoapi.exceptions.hash.HashException;
-import com.pokegoapi.util.Log;
 import com.pokegoapi.util.PokeDictionary;
 import com.pokegoapi.util.SystemTimeImpl;
 import com.pokegoapi.util.hash.HashProvider;
@@ -27,11 +26,19 @@ import java.util.Set;
  */
 public class Main {
     private static PokemonGo api;
+    private static double latitude;
+    private static double longitude;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         login(args[0], args[1]);
-        locate(Double.parseDouble(args[2]),Double.parseDouble(args[3]), 1.0);
-        catchPokemons();
+
+        latitude = Double.parseDouble(args[2]);
+        longitude = Double.parseDouble(args[3]);
+        locate(latitude, longitude, 15.0);
+
+        snipe(PokemonIdOuterClass.PokemonId.CHANSEY, 37.50770728, 127.05064184);
+
+        Thread.sleep(2000);
     }
 
     private static void login(String username, String password) {
@@ -50,72 +57,72 @@ public class Main {
     }
 
     private static void locate(double latitude,
-                               double longtitude,
+                               double longitude,
                                double altitude) {
-        api.setLocation(latitude, longtitude, altitude);
+        System.out.println("Setting the current location to be: " +
+                latitude + "," + longitude);
+
+        api.setLocation(latitude, longitude, altitude);
     }
 
-    private static void catchPokemons() {
+    private static void snipe(PokemonIdOuterClass.PokemonId pokemonId,
+                              double latitude, double longitude) {
         try {
-            //Wait until map is updated for the current location
-            api.getMap().awaitUpdate();
+            locate(latitude, longitude, 15.0);
+            updateMap();
 
-            Set<CatchablePokemon> catchablePokemons = api.getMap().getMapObjects().getPokemon();
-            System.out.println("Pokemon in area: " + catchablePokemons.size());
+            Set<CatchablePokemon> catchablePokemons = getCatchablePokemons();
 
             Random random = new Random();
             PokeBank pokebank = api.getInventories().getPokebank();
 
+            // f(catchablePokemons);
             for (CatchablePokemon cp : catchablePokemons) {
-                // You need to Encounter first.
+                System.out.println("Pokemon seen: " + cp.getPokemonId());
+                if (cp.getPokemonId() != pokemonId)
+                    continue;
+
                 EncounterResult encResult = cp.encounterPokemon();
-                // if encounter was successful, catch
                 if (encResult.wasSuccessful()) {
                     System.out.println("Encountered: " + cp.getPokemonId());
-                    CatchOptions options =
-                            new CatchOptions(api).
-                                    useRazzberry(true).
-                                    withPokeballSelector(PokeballSelector.SMART);
                     List<Pokeball> useablePokeballs
                             = api.getInventories().getItemBag().getUseablePokeballs();
-
                     double probability = cp.getCaptureProbability();
                     if (useablePokeballs.size() > 0) {
-                        //Select pokeball with smart selector to print what pokeball is used
                         Pokeball pokeball = PokeballSelector.SMART.select(useablePokeballs, probability);
-                        System.out.println("Attempting to catch: " + cp.getPokemonId() + " with " + pokeball
-                                + " (" + probability + ")");
-                        //Throw pokeballs until capture or flee
+                        System.out.println("Attempting to catch: " +
+                                cp.getPokemonId() + " with " + pokeball +
+                                " (" + probability + ")");
+
+                        // Operate 'pull catch'
+                        locate(latitude, longitude, 15.0);
+
                         while (!cp.isDespawned()) {
-                            //Wait between Pokeball throws
-                            Thread.sleep(500 + random.nextInt(1000));
-                            CatchResult result = cp.catchPokemon(options);
+                            // Wait between Pokeball throws.
+                            Thread.sleep(1000 + random.nextInt(1000));
+
+                            // Catching pokemon.
+                            CatchResult result = cp.catchPokemon(getCatchOptions());
                             System.out.println("Threw ball: " + result.getStatus());
-                            if (result.getStatus() == CatchPokemonResponseOuterClass.CatchPokemonResponse.CatchStatus.CATCH_SUCCESS) {
-                                //Print pokemon stats
+                            if (result.getStatus() ==
+                                    CatchPokemonResponseOuterClass.
+                                            CatchPokemonResponse.
+                                            CatchStatus.CATCH_SUCCESS) {
+
+                                // Print pokemon stats
                                 Pokemon pokemon = pokebank.getPokemonById(result.getCapturedPokemonId());
-                                double iv = pokemon.getIvInPercentage();
-                                int number = pokemon.getPokemonId().getNumber();
-                                String name = PokeDictionary.getDisplayName(number, Locale.ENGLISH);
+                                String name = PokeDictionary.getDisplayName(pokemon.getPokemonId().getNumber(), Locale.ENGLISH);
                                 System.out.println("====" + name + "====");
                                 System.out.println("CP: " + pokemon.getCp());
-                                System.out.println("IV: " + iv + "%");
-                                System.out.println("Height: " + pokemon.getHeightM() + "m");
-                                System.out.println("Weight: " + pokemon.getWeightKg() + "kg");
+                                System.out.println("IV: " + pokemon.getIvInPercentage() + "%");
                                 System.out.println("Move 1: " + pokemon.getMove1());
                                 System.out.println("Move 2: " + pokemon.getMove2());
-                                //Rename the pokemon to <Name> IV%
-                                pokemon.renamePokemon(name + " " + iv + "%");
-                                //Set pokemon with IV above 90% as favorite
-                                if (iv > 90) {
-                                    pokemon.setFavoritePokemon(true);
-                                }
                             }
                         }
-                        //Wait for animation before catching next pokemon
+                        // Waiting for animation before complete catch action.
                         Thread.sleep(3000 + random.nextInt(1000));
                     } else {
-                        System.out.println("Skipping Pokemon, we have no Pokeballs!");
+                        System.out.println("No pokeballs");
                     }
                 } else {
                     System.out.println("Encounter failed. " + encResult.getStatus());
@@ -124,5 +131,28 @@ public class Main {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Update current location and nearby objects.
+     */
+    private static void updateMap() {
+        System.out.println("Updating the map and nearby objects..");
+
+        try {
+            api.getMap().awaitUpdate();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static Set<CatchablePokemon> getCatchablePokemons() {
+        return api.getMap().getMapObjects().getPokemon();
+    }
+
+    private static CatchOptions getCatchOptions() {
+        return new CatchOptions(api)
+                .useRazzberry(true)
+                .withPokeballSelector(PokeballSelector.SMART);
     }
 }
