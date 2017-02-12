@@ -18,8 +18,8 @@ import okhttp3.OkHttpClient;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by jsh3571 on 10/02/2017.
@@ -28,17 +28,18 @@ public class Main {
     private static PokemonGo api;
     private static double latitude;
     private static double longitude;
+    private static final double ALTITUDE = 15.0;
 
     public static void main(String[] args) throws Exception {
         login(args[0], args[1]);
 
         latitude = Double.parseDouble(args[2]);
         longitude = Double.parseDouble(args[3]);
-        locate(latitude, longitude, 15.0);
+        locate(latitude, longitude, ALTITUDE);
 
-        snipe(PokemonIdOuterClass.PokemonId.CHANSEY, 37.50770728, 127.05064184);
+        snipe(PokemonIdOuterClass.PokemonId.SNORLAX, 37.50761112,127.13461213);
 
-        Thread.sleep(2000);
+        TimeUnit.SECONDS.sleep(15);
     }
 
     private static void login(String username, String password) {
@@ -68,66 +69,14 @@ public class Main {
     private static void snipe(PokemonIdOuterClass.PokemonId pokemonId,
                               double latitude, double longitude) {
         try {
-            locate(latitude, longitude, 15.0);
+            locate(latitude, longitude, ALTITUDE);
+            TimeUnit.SECONDS.sleep(15);
+
             updateMap();
 
             Set<CatchablePokemon> catchablePokemons = getCatchablePokemons();
 
-            Random random = new Random();
-            PokeBank pokebank = api.getInventories().getPokebank();
-
-            // f(catchablePokemons);
-            for (CatchablePokemon cp : catchablePokemons) {
-                System.out.println("Pokemon seen: " + cp.getPokemonId());
-                if (cp.getPokemonId() != pokemonId)
-                    continue;
-
-                EncounterResult encResult = cp.encounterPokemon();
-                if (encResult.wasSuccessful()) {
-                    System.out.println("Encountered: " + cp.getPokemonId());
-                    List<Pokeball> useablePokeballs
-                            = api.getInventories().getItemBag().getUseablePokeballs();
-                    double probability = cp.getCaptureProbability();
-                    if (useablePokeballs.size() > 0) {
-                        Pokeball pokeball = PokeballSelector.SMART.select(useablePokeballs, probability);
-                        System.out.println("Attempting to catch: " +
-                                cp.getPokemonId() + " with " + pokeball +
-                                " (" + probability + ")");
-
-                        // Operate 'pull catch'
-                        locate(latitude, longitude, 15.0);
-
-                        while (!cp.isDespawned()) {
-                            // Wait between Pokeball throws.
-                            Thread.sleep(1000 + random.nextInt(1000));
-
-                            // Catching pokemon.
-                            CatchResult result = cp.catchPokemon(getCatchOptions());
-                            System.out.println("Threw ball: " + result.getStatus());
-                            if (result.getStatus() ==
-                                    CatchPokemonResponseOuterClass.
-                                            CatchPokemonResponse.
-                                            CatchStatus.CATCH_SUCCESS) {
-
-                                // Print pokemon stats
-                                Pokemon pokemon = pokebank.getPokemonById(result.getCapturedPokemonId());
-                                String name = PokeDictionary.getDisplayName(pokemon.getPokemonId().getNumber(), Locale.ENGLISH);
-                                System.out.println("====" + name + "====");
-                                System.out.println("CP: " + pokemon.getCp());
-                                System.out.println("IV: " + pokemon.getIvInPercentage() + "%");
-                                System.out.println("Move 1: " + pokemon.getMove1());
-                                System.out.println("Move 2: " + pokemon.getMove2());
-                            }
-                        }
-                        // Waiting for animation before complete catch action.
-                        Thread.sleep(3000 + random.nextInt(1000));
-                    } else {
-                        System.out.println("No pokeballs");
-                    }
-                } else {
-                    System.out.println("Encounter failed. " + encResult.getStatus());
-                }
-            }
+            snipe(pokemonId, catchablePokemons);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -137,7 +86,7 @@ public class Main {
      * Update current location and nearby objects.
      */
     private static void updateMap() {
-        System.out.println("Updating the map and nearby objects..");
+        System.out.println("Updating the map and its nearby objects..");
 
         try {
             api.getMap().awaitUpdate();
@@ -155,4 +104,77 @@ public class Main {
                 .useRazzberry(true)
                 .withPokeballSelector(PokeballSelector.SMART);
     }
+
+    private static void snipe(PokemonIdOuterClass.PokemonId pokemonId,
+                              Set<CatchablePokemon> catchablePokemons)
+            throws Exception {
+
+        PokeBank pokebank = api.getInventories().getPokebank();
+
+        System.out.println("Catchable pokemons.size(): " +catchablePokemons.size());
+        if (catchablePokemons.size() == 0) {
+            System.out.println("No pokemons to be caught.");
+            locate(latitude, longitude, ALTITUDE);
+            return;
+        }
+
+        for (CatchablePokemon cp : catchablePokemons) {
+            System.out.println("Pokemon seen: " + cp.getPokemonId());
+            if (cp.getPokemonId() != pokemonId)
+                continue;
+
+            EncounterResult encResult = cp.encounterPokemon();
+            if (encResult.wasSuccessful()) {
+                System.out.println("Encountered: " + cp.getPokemonId());
+
+                List<Pokeball> useablePokeballs
+                        = api.getInventories().getItemBag().getUseablePokeballs();
+                double probability = cp.getCaptureProbability();
+
+                if (useablePokeballs.size() > 0) {
+                    Pokeball pokeball =
+                            PokeballSelector.SMART.select(useablePokeballs, probability);
+                    System.out.println("Attempting to catch: " +
+                            cp.getPokemonId() + " with " + pokeball +
+                            " (" + probability + ")");
+
+                    // Operate 'pull catch'
+                    System.out.println("Flying back to home location to " +
+                            "avoid softban.");
+                    locate(latitude, longitude, ALTITUDE);
+
+                    while (!cp.isDespawned()) {
+                        // Wait between Pokeball throws.
+                        TimeUnit.SECONDS.sleep(1);
+
+                        // Catching pokemon.
+                        CatchResult result = cp.catchPokemon(getCatchOptions());
+                        System.out.println("Threw ball: " + result.getStatus());
+                        if (result.getStatus() ==
+                                CatchPokemonResponseOuterClass.
+                                        CatchPokemonResponse.
+                                        CatchStatus.CATCH_SUCCESS) {
+
+                            // Print pokemon stats
+                            Pokemon pokemon = pokebank.getPokemonById(result.getCapturedPokemonId());
+                            String name = PokeDictionary.getDisplayName(pokemon.getPokemonId().getNumber(), Locale.ENGLISH);
+                            System.out.println("====" + name + "====");
+                            System.out.println("CP: " + pokemon.getCp());
+                            System.out.println("IV: " + pokemon.getIvInPercentage() + "%");
+                            System.out.println("Move 1: " + pokemon.getMove1());
+                            System.out.println("Move 2: " + pokemon.getMove2());
+                        }
+                    }
+
+                    // Waiting for animation before complete catch action.
+                    TimeUnit.SECONDS.sleep(3);
+                } else {
+                    System.out.println("No pokeballs");
+                }
+            } else {
+                System.out.println("Encounter failed. " + encResult.getStatus());
+            }
+        }
+    }
+
 }
