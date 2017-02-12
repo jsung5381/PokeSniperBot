@@ -18,6 +18,7 @@ import okhttp3.OkHttpClient;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Scanner;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -26,53 +27,43 @@ import java.util.concurrent.TimeUnit;
  */
 public class Main {
     private static PokemonGo api;
-    private static double latitude;
-    private static double longitude;
-    private static final double ALTITUDE = 15.0;
+    private static Location home;
+    private static Scanner sc = new Scanner(System.in);
 
     public static void main(String[] args) throws Exception {
-        login(args[0], args[1]);
+        String username = sc.nextLine();
+        String password = sc.nextLine();
+        UserLogger userLogger = new UserLogger(username, password);
+        userLogger.login();
 
-        latitude = Double.parseDouble(args[2]);
-        longitude = Double.parseDouble(args[3]);
-        locate(latitude, longitude, ALTITUDE);
+        home = new Location(
+                Double.parseDouble(args[0]), Double.parseDouble(args[1]));
+        locate(home);
 
-        snipe(PokemonIdOuterClass.PokemonId.SNORLAX, 37.50761112,127.13461213);
+        Location dest =
+                new Location(37.48663211,126.95767536);
+        snipe(PokemonIdOuterClass.PokemonId.DRAGONITE, dest);
 
         TimeUnit.SECONDS.sleep(15);
     }
 
-    private static void login(String username, String password) {
-        OkHttpClient http = new OkHttpClient();
-        api = new PokemonGo(http);
-        try {
-            GoogleAutoCredentialProvider provider =
-                    new GoogleAutoCredentialProvider(
-                            http, username, password, new SystemTimeImpl());
-            HashProvider hasher = new LegacyHashProvider();
-
-            api.login(provider, hasher);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static void locate(double latitude,
-                               double longitude,
-                               double altitude) {
+    private static void locate(Location location) {
         System.out.println("Setting the current location to be: " +
-                latitude + "," + longitude);
+                location.getLatitude() + "," + location.getLongitude());
 
-        api.setLocation(latitude, longitude, altitude);
+        api.setLocation(
+                location.getLatitude(),
+                location.getLongitude(),
+                location.getALTITUDE());
     }
 
     private static void snipe(PokemonIdOuterClass.PokemonId pokemonId,
-                              double latitude, double longitude) {
+                              Location location) {
         try {
-            locate(latitude, longitude, ALTITUDE);
+            locate(location);
             TimeUnit.SECONDS.sleep(15);
 
-            updateMap();
+            // updateMap();
 
             Set<CatchablePokemon> catchablePokemons = getCatchablePokemons();
 
@@ -114,7 +105,7 @@ public class Main {
         System.out.println("Catchable pokemons.size(): " +catchablePokemons.size());
         if (catchablePokemons.size() == 0) {
             System.out.println("No pokemons to be caught.");
-            locate(latitude, longitude, ALTITUDE);
+            locate(home);
             return;
         }
 
@@ -141,11 +132,11 @@ public class Main {
                     // Operate 'pull catch'
                     System.out.println("Flying back to home location to " +
                             "avoid softban.");
-                    locate(latitude, longitude, ALTITUDE);
+                    locate(home);
 
                     while (!cp.isDespawned()) {
                         // Wait between Pokeball throws.
-                        TimeUnit.SECONDS.sleep(1);
+                        TimeUnit.SECONDS.sleep(3);
 
                         // Catching pokemon.
                         CatchResult result = cp.catchPokemon(getCatchOptions());
@@ -167,7 +158,7 @@ public class Main {
                     }
 
                     // Waiting for animation before complete catch action.
-                    TimeUnit.SECONDS.sleep(3);
+                    TimeUnit.SECONDS.sleep(5);
                 } else {
                     System.out.println("No pokeballs");
                 }
