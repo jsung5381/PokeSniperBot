@@ -9,12 +9,7 @@ import com.pokegoapi.api.map.pokemon.encounter.EncounterResult;
 import com.pokegoapi.api.pokemon.Pokemon;
 import com.pokegoapi.api.settings.CatchOptions;
 import com.pokegoapi.api.settings.PokeballSelector;
-import com.pokegoapi.auth.GoogleAutoCredentialProvider;
 import com.pokegoapi.util.PokeDictionary;
-import com.pokegoapi.util.SystemTimeImpl;
-import com.pokegoapi.util.hash.HashProvider;
-import com.pokegoapi.util.hash.legacy.LegacyHashProvider;
-import okhttp3.OkHttpClient;
 
 import java.util.List;
 import java.util.Locale;
@@ -26,7 +21,6 @@ import java.util.concurrent.TimeUnit;
  * Created by jsh3571 on 10/02/2017.
  */
 public class Main {
-    private static PokemonGo api;
     private static Location home;
     private static Scanner sc = new Scanner(System.in);
 
@@ -75,19 +69,6 @@ public class Main {
 
             snipe(pokemonId, catchablePokemons);
         } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Update current location and nearby objects.
-     */
-    private static void updateMap() {
-        System.out.println("Updating the map and its nearby objects..");
-
-        try {
-            api.getMap().awaitUpdate();
-        } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
