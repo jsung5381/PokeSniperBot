@@ -36,12 +36,18 @@ public class Main {
         UserLogger userLogger = new UserLogger(username, password);
         userLogger.login();
 
+        String homeLatitude = sc.nextLine();
+        String homeLongitude = sc.nextLine();
         home = new Location(
-                Double.parseDouble(args[0]), Double.parseDouble(args[1]));
+                Double.parseDouble(homeLatitude),
+                Double.parseDouble(homeLongitude));
         locate(home);
 
-        Location dest =
-                new Location(37.48663211,126.95767536);
+        String destLatitude = sc.nextLine();
+        String destLongitude = sc.nextLine();
+        Location dest = new Location(
+                Double.parseDouble(destLatitude),
+                Double.parseDouble(destLongitude));
         snipe(PokemonIdOuterClass.PokemonId.DRAGONITE, dest);
 
         TimeUnit.SECONDS.sleep(15);
