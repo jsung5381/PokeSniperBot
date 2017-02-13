@@ -31,6 +31,6 @@ public class Main {
 
         Sniper sniper = new Sniper(api, locator, home);
 
-        sniper.snipe(PokemonIdOuterClass.PokemonId.DRAGONITE, dest);
+        sniper.snipe(PokemonIdOuterClass.PokemonId.ALAKAZAM, dest);
     }
 }

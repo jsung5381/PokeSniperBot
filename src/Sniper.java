@@ -31,90 +31,137 @@ public class Sniper {
         // Assign the locator, locator.
         this.locator = locator;
 
-        // Home.
+        // Assign default location, home.
         this.home = home;
     }
 
     public void snipe(PokemonIdOuterClass.PokemonId pokemonId,
                       Location destination) throws Exception {
-        // Flying to the destination to catch desired pokemon.
+        // Flying to the destination to search desired pokemon.
         locator.locate(destination);
 
+        // Get catchable pokemons at updated location.
         Set<CatchablePokemon> catchablePokemons =
                 go.getMap().getMapObjects().getPokemon();
 
-        if (catchablePokemons.size() == 0) {
+        // If there is no desired pokemon around the player, come back home.
+        if (!isExistIn(pokemonId, catchablePokemons)) {
+            System.out.println("Target pokemon does not exist within range.");
             locator.locate(home);
-        } else {
+        }
+
+        // Otherwise, snipe the desired pokemon from catchable pokemons.
+        else {
+            System.out.println("Found target pokemon within range, now snipe!");
             snipe(pokemonId, catchablePokemons);
         }
     }
 
+    /**
+     * Checks if target pokemon exists in catchable pokemon lists.
+     * @param pokemonId represents the name of target pokemon
+     * @param catchablePokemons contains list of pokemons nearby
+     * @return
+     */
+    private boolean isExistIn(PokemonIdOuterClass.PokemonId pokemonId,
+                              Set<CatchablePokemon> catchablePokemons) {
+
+        for (CatchablePokemon pokemon : catchablePokemons)
+            if (pokemon.getPokemonId() == pokemonId)
+                return true;
+
+        return false;
+    }
+
     private void snipe(PokemonIdOuterClass.PokemonId pokemonId,
                        Set<CatchablePokemon> catchablePokemons) {
-
-        PokeBank pokebank = go.getInventories().getPokebank();
-
         try {
+            // From the catchable pokemons, find target pokemon.
             for (CatchablePokemon cp : catchablePokemons) {
                 System.out.println("Pokemon seen: " + cp.getPokemonId());
+
+                // If the pokemon seen is not what we want, try next pokemon.
                 if (cp.getPokemonId() != pokemonId)
                     continue;
 
+                System.out.println("Found the desired pokemon!!");
+
+                // Now encountering pokemon, meaning click(tab) on the pokemon.
                 EncounterResult encResult = cp.encounterPokemon();
                 if (encResult.wasSuccessful()) {
-                    System.out.println("Encountered: " + cp.getPokemonId());
 
-                    List<Pokeball> useablePokeballs
-                            = go.getInventories().getItemBag().getUseablePokeballs();
+                    // Getting pokeballs and probability.
+                    List<Pokeball> usablePokeballs = getUsablePokeballs();
                     double probability = cp.getCaptureProbability();
 
-                    if (useablePokeballs.size() > 0) {
+                    if (usablePokeballs.size() > 0) {
                         Pokeball pokeball =
-                                PokeballSelector.SMART.select(useablePokeballs, probability);
-                        System.out.println("Attempting to catch: " +
-                                cp.getPokemonId() + " with " + pokeball +
-                                " (" + probability + ")");
+                                PokeballSelector.SMART.select(
+                                        usablePokeballs, probability);
 
-                        // Operate 'pull catch'
-                        System.out.println("Flying back to home location to " +
-                                "avoid softban.");
-                        // locate(home);
+                        System.out.println("Attempting to catch: "
+                                + cp.getPokemonId() + "(" + probability + ") " +
+                                "with " + pokeball);
 
-                        while (!cp.isDespawned()) {
-                            // Wait between Pokeball throws.
-                            TimeUnit.SECONDS.sleep(3);
+                        // Do 'pull catch' by flying back home before catch.
+                        System.out.println("Flying back home to" +
+                                " avoid softban..");
+                        locator.locate(home);
 
-                            // Catching pokemon.
-                            CatchResult result = cp.catchPokemon(getCatchOptions());
-                            System.out.println("Threw ball at " + pokemonId + ": " + result.getStatus());
-                            if (result.getStatus() ==
-                                    CatchPokemonResponseOuterClass.
-                                            CatchPokemonResponse.
-                                            CatchStatus.CATCH_SUCCESS) {
-
-                                // Print pokemon stats
-                                Pokemon pokemon = pokebank.getPokemonById(result.getCapturedPokemonId());
-                                String name = PokeDictionary.getDisplayName(pokemon.getPokemonId().getNumber(), Locale.ENGLISH);
-                                System.out.println("====" + name + "====");
-                                System.out.println("CP: " + pokemon.getCp());
-                                System.out.println("IV: " + pokemon.getIvInPercentage() + "%");
-                                System.out.println("Move 1: " + pokemon.getMove1());
-                                System.out.println("Move 2: " + pokemon.getMove2());
-                            }
-                        }
+                        // Catch the pokemon while spawned.
+                        catchPokemon(cp);
 
                         // Waiting for animation before complete catch action.
                         TimeUnit.SECONDS.sleep(5);
                     } else {
-                        System.out.println("No pokeballs");
+                        System.out.println("No more pokeballs.");
                     }
                 } else {
-                    System.out.println("Encounter failed. " + encResult.getStatus());
+                    System.out.println("Encounter failed. " +
+                            encResult.getStatus());
                 }
             }
         } catch (Exception e) {
+            System.out.println("Exception occured!!");
+            System.out.println("Flying back home to avoid softban.");
+            locator.locate(home);
+
             e.printStackTrace();
+        }
+    }
+
+    private List<Pokeball> getUsablePokeballs() {
+        return go.getInventories().getItemBag().getUseablePokeballs();
+    }
+
+    private void catchPokemon(CatchablePokemon catchablePokemon)
+            throws Exception {
+
+        while (!catchablePokemon.isDespawned()) {
+            // Wait between Pokeball throws.
+            TimeUnit.SECONDS.sleep(3);
+
+            // Catching pokemon.
+            CatchResult result =
+                    catchablePokemon.catchPokemon(getCatchOptions());
+
+            System.out.println("Threw ball at " +
+                    catchablePokemon.getPokemonId() + ": " +
+                    result.getStatus());
+
+            if (isCaptured(result.getStatus())) {
+
+                // Getting pokebank which contains current pokemons we have.
+                PokeBank pokebank = go.getInventories().getPokebank();
+
+                // Obtaining Pokemon object of the captured pokemon.
+                Pokemon pokemon =
+                        pokebank.getPokemonById(
+                                result.getCapturedPokemonId());
+
+                // Using the object above, print stats of the pokemon.
+                printCapturedPokemon(pokemon);
+            }
         }
     }
 
@@ -122,5 +169,26 @@ public class Sniper {
         return new CatchOptions(go).
                 useRazzberry(true).
                 withPokeballSelector(PokeballSelector.SMART);
+    }
+
+    private boolean isCaptured(CatchPokemonResponseOuterClass.
+                                       CatchPokemonResponse.
+                                       CatchStatus catchStatus) {
+        return catchStatus ==
+                CatchPokemonResponseOuterClass.
+                        CatchPokemonResponse.CatchStatus.CATCH_SUCCESS;
+    }
+
+    private void printCapturedPokemon(Pokemon pokemon) {
+        String name =
+                PokeDictionary.getDisplayName(
+                        pokemon.getPokemonId().getNumber(), Locale.ENGLISH);
+
+        System.out.println("====== " + name + " ======");
+        System.out.println("CP: " + pokemon.getCp());
+        System.out.println("IV: " + pokemon.getIvInPercentage() + "%");
+        System.out.println("Move 1: " + pokemon.getMove1());
+        System.out.println("Move 2: " + pokemon.getMove2());
+        System.out.println("==========================");
     }
 }
