@@ -30,11 +30,13 @@ public class UserLogger {
         }
     }
 
-    public void login() {
+    public PokemonGo login() {
         try {
             go.login(authProvider, hashProvider);
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        return go;
     }
 }

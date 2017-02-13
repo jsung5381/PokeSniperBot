@@ -1,7 +1,6 @@
 /**
- * Created by jsh3571 on 12/02/2017.
+ * Created by jsh3571 on 13/02/2017.
  */
-
 public class Location {
     private double latitude;
     private double longitude;
@@ -20,7 +19,7 @@ public class Location {
         return longitude;
     }
 
-    public static double getALTITUDE() {
+    public double getALTITUDE() {
         return ALTITUDE;
     }
 }
