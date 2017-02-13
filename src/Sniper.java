@@ -24,6 +24,12 @@ public class Sniper {
     private final Locator locator;
     private final Location home;
 
+    /**
+     * A constructor of Sniper which performs catching targeted pokemon.
+     * @param go api(i.e. player)
+     * @param locator used to locate player
+     * @param home represents home destination
+     */
     public Sniper(PokemonGo go, Locator locator, Location home) {
         // Assign the api, go.
         this.go = go;
@@ -35,6 +41,12 @@ public class Sniper {
         this.home = home;
     }
 
+    /**
+     * Catch target pokemon given by its id and destination.
+     * @param pokemonId represents pokemon name
+     * @param destination location where the pokemon currently appears
+     * @throws Exception
+     */
     public void snipe(PokemonIdOuterClass.PokemonId pokemonId,
                       Location destination) throws Exception {
         // Flying to the destination to search desired pokemon.
@@ -57,12 +69,6 @@ public class Sniper {
         }
     }
 
-    /**
-     * Checks if target pokemon exists in catchable pokemon lists.
-     * @param pokemonId represents the name of target pokemon
-     * @param catchablePokemons contains list of pokemons nearby
-     * @return
-     */
     private boolean isExistIn(PokemonIdOuterClass.PokemonId pokemonId,
                               Set<CatchablePokemon> catchablePokemons) {
 
