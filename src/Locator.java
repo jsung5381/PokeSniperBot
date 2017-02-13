@@ -12,18 +12,14 @@ public class Locator {
         this.go = go;
     }
 
-    public void locate(Location location) {
+    public void locate(Location location) throws InterruptedException {
         // Change current location to be the same as input.
         go.setLocation(
                 location.getLatitude(),
                 location.getLongitude(),
                 location.getALTITUDE());
 
-        try {
-            // Waiting for map objects to be updated.
-            TimeUnit.SECONDS.sleep(15);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        // Waiting for map objects to be updated.
+        TimeUnit.SECONDS.sleep(15);
     }
 }
