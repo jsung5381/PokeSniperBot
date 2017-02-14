@@ -24,6 +24,5 @@ public class Locator {
 
         // Waiting for map objects to be updated.
         TimeUnit.SECONDS.sleep(15);
-        go.getMap().awaitUpdate();
     }
 }

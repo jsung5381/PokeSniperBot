@@ -12,7 +12,7 @@ public class Main {
     private static PokemonGo api;
     private static Locator locator;
 
-    private static final Properties props = new Properties();
+    private static Properties props = new Properties();
 
     public static void main(String[] args) throws Exception {
         loadProperties();
@@ -53,10 +53,10 @@ public class Main {
     }
 
     private static PokemonIdOuterClass.PokemonId getTargetPokemon() {
-        String targetPokemon = props.getProperty("targetPokemon");
+        String targetPokemon =
+                props.getProperty("targetPokemon").toUpperCase();
 
-        return PokemonIdOuterClass.PokemonId.
-                valueOf(targetPokemon.toUpperCase());
+        return PokemonIdOuterClass.PokemonId.valueOf(targetPokemon);
     }
 
     private static Location getDestLocation() {

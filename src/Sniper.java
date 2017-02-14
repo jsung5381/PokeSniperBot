@@ -40,7 +40,8 @@ public class Sniper {
         // Assign default location, home.
         this.home = home;
 
-        // Setting current location, home.
+        // Setting default location, home.
+
         try {
             locator.locate(home);
         } catch (InterruptedException e) {
@@ -56,8 +57,14 @@ public class Sniper {
      */
     public void snipe(PokemonIdOuterClass.PokemonId pokemonId,
                       Location destination) throws Exception {
-        // Flying to the destination to search desired pokemon.
+        System.out.println("Target pokemon: " + pokemonId);
+        System.out.println("Changing current location to catch the pokemon..");
+
+        // Flying to the destination to catch the desired pokemon.
         locator.locate(destination);
+
+        // Waiting for update to get nearby objects.
+        go.getMap().awaitUpdate();
 
         // Get catchable pokemons at updated location.
         Set<CatchablePokemon> catchablePokemons =
