@@ -130,7 +130,11 @@ public class Sniper {
         } catch (Exception e) {
             System.out.println("Exception occured!!");
             System.out.println("Flying back home to avoid softban.");
-            locator.locate(home);
+            try {
+                locator.locate(home);
+            } catch (Exception _e) {
+                _e.printStackTrace();
+            }
 
             e.printStackTrace();
         }
