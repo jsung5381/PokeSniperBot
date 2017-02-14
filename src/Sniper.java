@@ -39,6 +39,13 @@ public class Sniper {
 
         // Assign default location, home.
         this.home = home;
+
+        // Setting current location, home.
+        try {
+            locator.locate(home);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -135,6 +142,7 @@ public class Sniper {
             } catch (Exception _e) {
                 _e.printStackTrace();
             }
+
 
             e.printStackTrace();
         }
