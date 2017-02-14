@@ -55,7 +55,8 @@ public class Main {
     private static PokemonIdOuterClass.PokemonId getTargetPokemon() {
         String targetPokemon = props.getProperty("targetPokemon");
 
-        return PokemonIdOuterClass.PokemonId.valueOf(targetPokemon);
+        return PokemonIdOuterClass.PokemonId.
+                valueOf(targetPokemon.toUpperCase());
     }
 
     private static Location getDestLocation() {

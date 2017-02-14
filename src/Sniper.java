@@ -133,6 +133,9 @@ public class Sniper {
                     System.out.println("Encounter failed. " +
                             encResult.getStatus());
                 }
+
+                // Ignoring left catchable pokemons.
+                return;
             }
         } catch (Exception e) {
             System.out.println("Exception occured!!");
@@ -142,7 +145,6 @@ public class Sniper {
             } catch (Exception _e) {
                 _e.printStackTrace();
             }
-
 
             e.printStackTrace();
         }
