@@ -19,6 +19,9 @@ public class Locator {
                 location.getLongitude(),
                 location.getALTITUDE());
 
+        System.out.println("Flying to " +
+                location.getLatitude() + ", " +location.getLongitude() + "..");
+
         // Waiting for map objects to be updated.
         TimeUnit.SECONDS.sleep(15);
     }

@@ -19,7 +19,7 @@ public class Main {
         login();
 
         Sniper sniper = new Sniper(api, locator, getHomeLocation());
-        sniper.snipe(PokemonIdOuterClass.PokemonId.SNORLAX, getDestLocation());
+        sniper.snipe(getTargetPokemon(), getDestLocation());
     }
 
     private static void loadProperties() {
@@ -50,6 +50,12 @@ public class Main {
                 Double.parseDouble(props.getProperty("defaultLongitude"));
 
         return new Location(homeLatitude, homeLongitude);
+    }
+
+    private static PokemonIdOuterClass.PokemonId getTargetPokemon() {
+        String targetPokemon = props.getProperty("targetPokemon");
+
+        return PokemonIdOuterClass.PokemonId.valueOf(targetPokemon);
     }
 
     private static Location getDestLocation() {
